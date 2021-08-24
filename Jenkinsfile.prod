@@ -1,0 +1,76 @@
+pipeline {
+  agent any
+
+  options {
+    disableConcurrentBuilds()
+  }
+
+  environment {
+    RAILS_ENV = 'production'
+    REGISTRY = 'registry.3-form.com/optimizer'
+    DOCKER_IMAGE = ''
+  }
+
+  stages {
+    stage('Build Image') {
+      steps {
+        echo 'Creating Production Image....'
+        script {
+          DOCKER_IMAGE = docker.build(REGISTRY + ":$GIT_COMMIT")
+        }
+      }
+    }
+
+    stage('Push Image') {
+      steps {
+        script {
+          DOCKER_IMAGE.push()
+          DOCKER_IMAGE.push('latest')
+        }
+        sh "docker rmi $REGISTRY:$GIT_COMMIT"
+      }
+    }
+
+    stage('Deploy') {
+      steps {
+        sh '''
+          set -e
+
+          downloadGithubFile() {
+            curl \
+              --silent \
+              --header "Authorization: token $GIT_PASS" \
+              --output $1 \
+              $2
+          }
+
+          export DOCKER_HOST=ssh://webmaster@192.168.31.71 # TDC Node
+          export DOCKER_IMAGE_TAG="${GIT_COMMIT}"
+
+          downloadGithubFile \
+            docker-compose.yml \
+            "https://raw.githubusercontent.com/3-form/cut-optimizer-2d-server/${GIT_COMMIT}/docker-compose.prod.yml"
+
+          docker stack deploy \
+            -c ./docker-compose.yml \
+            optimizer
+        '''
+      }
+    }
+  }
+  post {
+    always {
+      cleanWs()
+    }
+    success {
+      slackSend channel: '#web-dev-ops',
+                color: 'good',
+                message: "The pipeline ${currentBuild.fullDisplayName} has succeeded (<${env.BUILD_URL}|Open>)."
+    }
+    failure {
+      slackSend channel: '#web-dev-ops',
+                color: 'red',
+                message: "The pipeline ${currentBuild.fullDisplayName} has failed (<${env.BUILD_URL}|Open>)."
+    }
+  }
+}
