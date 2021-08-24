@@ -1,1 +1,6 @@
 target/
+
+Dockerfile
+Jenkinsfile.prod
+docker-compose.prod.yml
+README.md
