@@ -54,6 +54,11 @@ pipeline {
           docker stack deploy \
             -c ./docker-compose.yml \
             optimizer
+
+          docker run --rm -i \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            sudobmitch/docker-stack-wait:latest \
+            -t 300 -n optimizer optimizer
         '''
       }
     }
