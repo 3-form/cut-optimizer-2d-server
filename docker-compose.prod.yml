@@ -1,0 +1,37 @@
+version: '3.7'
+
+services:
+  optimizer:
+    image: registry.3-form.com/optimizer:${DOCKER_IMAGE_TAG:-latest}"
+    environment:
+      - CUT_OPTIMIZER_MAX_CONTENT_LENGTH=131584
+    healthcheck:
+      test: wget --quiet --tries=1 --spider http://localhost:3030/ || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+    networks:
+      - webgateway
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        order: start-first
+      placement:
+        constraints:
+          - node.labels.region == tdc
+      labels:
+        - traefik.enable=true
+        - traefik.docker.network=webgateway
+        - traefik.http.routers.optimizer-redirect.rule=Host(`optimizer.3-form.com`)
+        - traefik.http.routers.optimizer-redirect.entrypoints=web
+        - traefik.http.routers.optimizer-redirect.middlewares=redirect@file
+        - traefik.http.routers.optimizer.rule=Host(`optimizer.3-form.com`)
+        - traefik.http.routers.optimizer.entrypoints=websecure
+        - traefik.http.routers.optimizer.tls=true
+        - traefik.http.services.optimizer.loadbalancer.server.port=3030
+
+networks:
+  webgateway:
+    external: true
