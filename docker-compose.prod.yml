@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   optimizer:
-    image: registry.3-form.com/optimizer:${DOCKER_IMAGE_TAG:-latest}"
+    image: registry.3-form.com/optimizer:${DOCKER_IMAGE_TAG:-latest}
     environment:
       - CUT_OPTIMIZER_MAX_CONTENT_LENGTH=131584
     healthcheck:
