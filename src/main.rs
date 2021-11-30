@@ -72,4 +72,3 @@ fn init_logger(opt: &Opt) {
         .init();
     }
 }
-
